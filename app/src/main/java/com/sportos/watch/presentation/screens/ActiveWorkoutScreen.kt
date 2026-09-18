@@ -87,6 +87,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.runtime.mutableLongStateOf
+
 @Composable
 fun ActiveWorkoutScreen(
     sportType: String,
@@ -95,8 +97,19 @@ fun ActiveWorkoutScreen(
     onPauseWorkout: () -> Unit,
     onResumeWorkout: () -> Unit,
     onLapTrigger: () -> Unit,
-    onFinishWorkout: () -> Unit
+    onFinishWorkout: () -> Unit,
+    ambientState: AmbientState = AmbientState()
 ) {
+    // If watch is in Ambient Mode (AOD), display the ultra-low-power true black HUD
+    if (ambientState.isAmbient) {
+        AmbientWorkoutHud(
+            sportType = sportType,
+            state = engineState,
+            ambientState = ambientState
+        )
+        return
+    }
+
     val context = LocalContext.current
     val haptic = remember { SportHapticManager(context) }
     val audioTone = remember { SportAudioToneManager() }
@@ -107,8 +120,9 @@ fun ActiveWorkoutScreen(
     val pageCount = if (isRunning) 5 else 4
     val pagerState = rememberPagerState(initialPage = 0) { pageCount }
     var showEndConfirmation by remember { mutableStateOf(false) }
+    var lastHapticTickTimeMs by remember { mutableLongStateOf(0L) }
 
-    val currentTime = remember {
+    val currentTime = remember(System.currentTimeMillis() / 60_000L) {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
     }
 
@@ -135,7 +149,12 @@ fun ActiveWorkoutScreen(
                 if (isRunning && pagerState.currentPage == 1) {
                     false
                 } else if (!pagerState.isScrollInProgress) {
-                    haptic.rotaryTick()
+                    // Debounce rotary haptics by at least 70ms to conserve battery and motor coils
+                    val now = android.os.SystemClock.uptimeMillis()
+                    if (now - lastHapticTickTimeMs >= 70L) {
+                        haptic.rotaryTick()
+                        lastHapticTickTimeMs = now
+                    }
                     if (event.verticalScrollPixels > 0) {
                         if (pagerState.currentPage < pageCount - 1) {
                             coroutineScope.launch {

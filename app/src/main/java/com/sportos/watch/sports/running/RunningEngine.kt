@@ -1,5 +1,6 @@
 package com.sportos.watch.sports.running
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
@@ -15,6 +16,7 @@ enum class RunningMode {
     GHOST_PACER
 }
 
+@Immutable
 data class GpsLocationPoint(
     val latitude: Double,
     val longitude: Double,
@@ -24,6 +26,7 @@ data class GpsLocationPoint(
     val bearingDegrees: Float = 0f
 )
 
+@Immutable
 data class LapSplit(
     val lapNumber: Int,
     val splitTimeMs: Long,
@@ -33,6 +36,7 @@ data class LapSplit(
     val avgHeartRate: Double = 158.0
 )
 
+@Immutable
 data class RunningState(
     override val elapsedTimeMs: Long = 0,
     override val activeHeartRate: Double = 0.0,

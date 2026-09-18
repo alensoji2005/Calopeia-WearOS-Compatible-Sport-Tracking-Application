@@ -1,5 +1,6 @@
 package com.sportos.watch.sports.tennis
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
@@ -18,6 +19,7 @@ enum class StrokeType {
     SERVE
 }
 
+@Immutable
 data class TennisState(
     override val elapsedTimeMs: Long = 0,
     override val activeHeartRate: Double = 0.0,

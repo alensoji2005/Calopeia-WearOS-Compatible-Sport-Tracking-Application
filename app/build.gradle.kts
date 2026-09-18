@@ -105,8 +105,9 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-websockets:$ktorVersion")
     
-    // Ongoing Activity
+    // Wear OS Ongoing Activity & Ambient Lifecycle
     implementation("androidx.wear:wear-ongoing:1.0.0")
+    implementation("androidx.wear:wear:1.3.0")
 
     // Pre-built OSMDroid Map Engine for Wear OS
     implementation("org.osmdroid:osmdroid-android:6.1.20")

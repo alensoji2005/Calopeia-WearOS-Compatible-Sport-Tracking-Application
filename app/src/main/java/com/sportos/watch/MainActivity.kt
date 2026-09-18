@@ -21,7 +21,10 @@ import androidx.core.content.ContextCompat
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import android.view.WindowManager
+import androidx.wear.ambient.AmbientLifecycleObserver
 import com.google.android.horologist.compose.layout.AppScaffold
+import com.sportos.watch.presentation.screens.AmbientState
 import com.sportos.watch.presentation.screens.ActiveWorkoutScreen
 import com.sportos.watch.presentation.screens.MainMenuScreen
 import com.sportos.watch.presentation.screens.WorkoutSummaryScreen
@@ -33,6 +36,27 @@ class MainActivity : ComponentActivity() {
 
     private var workoutServiceBinder by mutableStateOf<WorkoutService.LocalBinder?>(null)
     private var hasPermissions by mutableStateOf(false)
+    private var ambientState by mutableStateOf(AmbientState())
+
+    private val ambientObserver by lazy {
+        AmbientLifecycleObserver(this, object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+            override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+                ambientState = AmbientState(
+                    isAmbient = true,
+                    burnInProtectionRequired = ambientDetails.burnInProtectionRequired,
+                    deviceHasLowBitAmbient = ambientDetails.deviceHasLowBitAmbient
+                )
+            }
+
+            override fun onExitAmbient() {
+                ambientState = AmbientState(isAmbient = false)
+            }
+
+            override fun onUpdateAmbient() {
+                // Ambient tick (1Hz/periodic heartbeat)
+            }
+        })
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -53,13 +77,24 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        lifecycle.addObserver(ambientObserver)
         checkAndRequestPermissions()
 
         setContent {
+            val isWorkoutActive = workoutServiceBinder?.isWorkoutActive == true
+            androidx.compose.runtime.LaunchedEffect(isWorkoutActive) {
+                if (isWorkoutActive) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
             SportOSTheme {
                 AppScaffold {
                     CalopeiaApp(
                         binder = workoutServiceBinder,
+                        ambientState = ambientState,
                         onStartWorkout = { sport, subMode, targetPace, isDemo ->
                             startWorkoutService(sport, subMode, targetPace, isDemo)
                         },
@@ -135,6 +170,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CalopeiaApp(
     binder: WorkoutService.LocalBinder?,
+    ambientState: AmbientState,
     onStartWorkout: (sport: String, subMode: String, targetPace: Double, isDemo: Boolean) -> Unit,
     onStopWorkout: () -> Unit,
     onPauseWorkout: () -> Unit,
@@ -192,6 +228,7 @@ fun CalopeiaApp(
                 onPauseWorkout = onPauseWorkout,
                 onResumeWorkout = onResumeWorkout,
                 onLapTrigger = onLapTrigger,
+                ambientState = ambientState,
                 onFinishWorkout = {
                     // Capture guaranteed final snapshot before tearing down the foreground service
                     val finalSnapshot = binder?.latestStateSnapshot ?: liveState ?: lastRecordedState

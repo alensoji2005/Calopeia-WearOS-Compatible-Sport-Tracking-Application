@@ -1,5 +1,6 @@
 package com.sportos.watch.sports.cricket
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
@@ -17,6 +18,7 @@ enum class CricketMode {
     BATTING
 }
 
+@Immutable
 data class CricketState(
     override val elapsedTimeMs: Long = 0,
     override val activeHeartRate: Double = 0.0,

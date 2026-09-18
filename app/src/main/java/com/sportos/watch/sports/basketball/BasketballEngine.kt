@@ -1,5 +1,6 @@
 package com.sportos.watch.sports.basketball
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
@@ -18,6 +19,7 @@ enum class BasketballMode {
     PRACTICE_DRILL
 }
 
+@Immutable
 data class BasketballState(
     override val elapsedTimeMs: Long = 0,
     override val activeHeartRate: Double = 0.0,

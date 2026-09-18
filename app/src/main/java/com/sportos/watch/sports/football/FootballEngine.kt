@@ -1,5 +1,6 @@
 package com.sportos.watch.sports.football
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
@@ -19,6 +20,7 @@ enum class FootballPeriod(val label: String) {
     MATCH_OVER("Full Time")
 }
 
+@Immutable
 data class FootballState(
     override val elapsedTimeMs: Long = 0,
     override val activeHeartRate: Double = 0.0,

@@ -1,5 +1,6 @@
 package com.sportos.watch.sports
 
+import androidx.compose.runtime.Immutable
 import androidx.health.services.client.data.ExerciseUpdate
 import com.sportos.watch.core.imu.ImuData
 import kotlinx.coroutines.flow.StateFlow
@@ -27,12 +28,12 @@ interface SportEngine {
     fun processHealthData(update: ExerciseUpdate)
 
     /**
-     * Pause the workout session.
+     * Called when the sport engine is paused.
      */
     fun pause()
 
     /**
-     * Resume the workout session.
+     * Called when the sport engine is resumed.
      */
     fun resume()
 
@@ -53,6 +54,7 @@ interface SportEngine {
     val engineState: StateFlow<SportEngineState>
 }
 
+@Immutable
 abstract class SportEngineState {
     abstract val elapsedTimeMs: Long
     abstract val activeHeartRate: Double
