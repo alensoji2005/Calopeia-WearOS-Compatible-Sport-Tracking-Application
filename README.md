@@ -160,8 +160,8 @@ app/src/main/java/com/sportos/watch/
 ### Build & Run
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/SportOS-watch.git
-   cd SportOS-watch
+   git clone https://github.com/alensoji2005/Calopeia-WearOS-Compatible-Sport-Tracking-Application.git
+   cd Calopeia-WearOS-Compatible-Sport-Tracking-Application
    ```
 2. **Compile Kotlin & KSP sources**:
    ```bash
