@@ -18,5 +18,6 @@ data class WorkoutSessionEntity(
     val distanceMeters: Double = 0.0,
     val avgPaceMinPerKm: Double = 0.0,
     val sportSpecificSummary: String = "",
-    val serializedRoutePoints: String = "" // Optional JSON or coordinate breadcrumbs
+    val serializedRoutePoints: String = "", // Optional JSON or coordinate breadcrumbs
+    val isSynced: Boolean = false
 )
