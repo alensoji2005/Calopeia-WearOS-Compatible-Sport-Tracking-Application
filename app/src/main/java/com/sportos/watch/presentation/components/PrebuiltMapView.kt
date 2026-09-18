@@ -176,7 +176,14 @@ fun PrebuiltMapView(
         // 1. Pre-built OSMDroid Native MapView
         AndroidView(
             factory = { ctx ->
-                Configuration.getInstance().userAgentValue = ctx.packageName
+                val config = Configuration.getInstance()
+                config.userAgentValue = ctx.packageName
+                // Wear OS Resource Caps: Limit RAM tile bitmap cache and disk storage
+                config.cacheMapTileCount = 12.toShort()
+                config.tileFileSystemCacheMaxBytes = 15L * 1024L * 1024L // 15MB disk max
+                config.tileFileSystemCacheTrimBytes = 10L * 1024L * 1024L // 10MB trim threshold
+                config.tileDownloadThreads = 2.toShort()
+
                 MapView(ctx).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)

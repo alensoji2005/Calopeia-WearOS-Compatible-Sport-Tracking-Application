@@ -30,6 +30,9 @@ interface WorkoutDao {
     @Query("DELETE FROM workout_sessions")
     suspend fun clearAllSessions()
 
+    @Query("DELETE FROM workout_sessions WHERE id NOT IN (SELECT id FROM workout_sessions ORDER BY startTimeMs DESC LIMIT :maxSessions)")
+    suspend fun pruneOldSessions(maxSessions: Int = 100)
+
     // Personal Records
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdatePR(pr: PersonalRecordEntity)

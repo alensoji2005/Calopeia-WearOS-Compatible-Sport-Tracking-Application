@@ -42,6 +42,7 @@ import com.sportos.watch.presentation.components.GpsMapView
 import com.sportos.watch.presentation.components.MetricTile
 import com.sportos.watch.presentation.components.PrebuiltMapView
 import com.sportos.watch.presentation.components.StravaOrange
+import com.sportos.watch.core.util.FormatUtils
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -133,7 +134,7 @@ fun ActiveWorkoutScreen(
                 // Map page (page 1 on running) handles its own rotary zoom
                 if (isRunning && pagerState.currentPage == 1) {
                     false
-                } else {
+                } else if (!pagerState.isScrollInProgress) {
                     haptic.rotaryTick()
                     if (event.verticalScrollPixels > 0) {
                         if (pagerState.currentPage < pageCount - 1) {
@@ -150,7 +151,7 @@ fun ActiveWorkoutScreen(
                         }
                         true
                     } else false
-                }
+                } else true
             }
     ) {
         // Outer Bezel Heart Rate Arc on the primary telemetry screen
@@ -436,7 +437,7 @@ private fun PrimaryTelemetryPage(
                     )
                     MetricTile(
                         label = "Dist",
-                        value = String.format("%.2f", state.distanceMeters / 1000.0),
+                        value = FormatUtils.fastFormat2Dec(state.distanceMeters / 1000.0),
                         unit = "km",
                         modifier = Modifier.weight(1f)
                     )
@@ -461,13 +462,13 @@ private fun PrimaryTelemetryPage(
                     )
                     MetricTile(
                         label = "Vert",
-                        value = String.format("%.1f", state.maxJumpHeightInches),
+                        value = FormatUtils.fastFormat1Dec(state.maxJumpHeightInches),
                         unit = "in",
                         modifier = Modifier.weight(1f)
                     )
                     MetricTile(
                         label = "Load",
-                        value = String.format("%.1f", state.playerLoad),
+                        value = FormatUtils.fastFormat1Dec(state.playerLoad),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -479,7 +480,7 @@ private fun PrimaryTelemetryPage(
                 ) {
                     MetricTile(
                         label = "Speed",
-                        value = String.format("%.1f", state.currentSpeedKmh),
+                        value = FormatUtils.fastFormat1Dec(state.currentSpeedKmh),
                         unit = "kmh",
                         valueColor = if (state.currentSpeedKmh > 20) CalopeiaCrimson else CalopeiaTextWhite,
                         modifier = Modifier.weight(1f)
@@ -492,7 +493,7 @@ private fun PrimaryTelemetryPage(
                     )
                     MetricTile(
                         label = "Dist",
-                        value = String.format("%.2f", state.distanceMeters / 1000.0),
+                        value = FormatUtils.fastFormat2Dec(state.distanceMeters / 1000.0),
                         unit = "km",
                         modifier = Modifier.weight(1f)
                     )
@@ -511,7 +512,7 @@ private fun PrimaryTelemetryPage(
                     )
                     MetricTile(
                         label = "Arm",
-                        value = String.format("%.1f", state.lastDeliverySpeedKmh),
+                        value = FormatUtils.fastFormat1Dec(state.lastDeliverySpeedKmh),
                         unit = "kmh",
                         valueColor = CalopeiaCrimson,
                         modifier = Modifier.weight(1f)
@@ -536,7 +537,7 @@ private fun PrimaryTelemetryPage(
                     )
                     MetricTile(
                         label = "Speed",
-                        value = String.format("%.1f", state.lastRacketSpeedKmh),
+                        value = FormatUtils.fastFormat1Dec(state.lastRacketSpeedKmh),
                         unit = "kmh",
                         modifier = Modifier.weight(1f)
                     )
@@ -775,13 +776,13 @@ private fun BasketballTacticalView(
             ) {
                 MetricTile(
                     label = "Last Jump",
-                    value = String.format("%.1f", state.lastJumpHeightInches),
+                    value = FormatUtils.fastFormat1Dec(state.lastJumpHeightInches),
                     unit = "in",
                     modifier = Modifier.weight(1f)
                 )
                 MetricTile(
                     label = "Hang Time",
-                    value = String.format("%.2f", state.lastHangTimeMs / 1000.0),
+                    value = FormatUtils.fastFormat2Dec(state.lastHangTimeMs / 1000.0),
                     unit = "s",
                     modifier = Modifier.weight(1f)
                 )
@@ -793,7 +794,7 @@ private fun BasketballTacticalView(
             ) {
                 MetricTile(
                     label = "PlayerLoad",
-                    value = String.format("%.1f", state.playerLoad),
+                    value = FormatUtils.fastFormat1Dec(state.playerLoad),
                     valueColor = CalopeiaAmber,
                     modifier = Modifier.weight(1f)
                 )
@@ -880,14 +881,14 @@ private fun FootballTacticalView(
         ) {
             MetricTile(
                 label = "Top Speed",
-                value = String.format("%.1f", state.topSpeedKmh),
+                value = FormatUtils.fastFormat1Dec(state.topSpeedKmh),
                 unit = "kmh",
                 valueColor = CalopeiaCrimson,
                 modifier = Modifier.weight(1f)
             )
             MetricTile(
                 label = "HIRD (>15)",
-                value = String.format("%.0f", state.highIntensityDistanceMeters),
+                value = "${state.highIntensityDistanceMeters.toInt()}",
                 unit = "m",
                 valueColor = CalopeiaNeonGreen,
                 modifier = Modifier.weight(1f)
@@ -953,7 +954,7 @@ private fun CricketTacticalView(state: CricketState, engine: CricketEngine?) {
                 )
                 MetricTile(
                     label = "Top Arm",
-                    value = String.format("%.1f", state.topDeliverySpeedKmh),
+                    value = FormatUtils.fastFormat1Dec(state.topDeliverySpeedKmh),
                     unit = "kmh",
                     valueColor = CalopeiaCrimson,
                     modifier = Modifier.weight(1f)
@@ -1250,7 +1251,7 @@ private fun StravaRunningHudPage(
             ) {
                 MetricTile(
                     label = "Dist",
-                    value = String.format("%.2f", (state?.distanceMeters ?: 0.0) / 1000.0),
+                    value = FormatUtils.fastFormat2Dec((state?.distanceMeters ?: 0.0) / 1000.0),
                     unit = "km",
                     modifier = Modifier.weight(1f)
                 )
@@ -1315,7 +1316,7 @@ private fun StravaSegmentPage(
     val isAhead = state.segmentPrDeltaMs <= 0
     val deltaMs = if (state.segmentPrDeltaMs != 0L) Math.abs(state.segmentPrDeltaMs) else Math.abs(state.targetPaceDeltaMs)
     val deltaSec = deltaMs / 1000.0
-    val aheadText = if (isAhead) String.format("▲ -%.1fs AHEAD", deltaSec) else String.format("▼ +%.1fs BEHIND", deltaSec)
+    val aheadText = if (isAhead) "▲ -${FormatUtils.fastFormat1Dec(deltaSec)}s AHEAD" else "▼ +${FormatUtils.fastFormat1Dec(deltaSec)}s BEHIND"
     val deltaColor = if (isAhead) CalopeiaNeonGreen else CalopeiaCrimsonBright
 
     Column(
@@ -1505,7 +1506,7 @@ private fun StravaSplitsPage(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Total Dist: ${String.format("%.2f", state.distanceMeters / 1000.0)} km",
+            text = "Total Dist: ${FormatUtils.fastFormat2Dec(state.distanceMeters / 1000.0)} km",
             fontSize = 9.sp,
             color = CalopeiaTextMuted
         )
@@ -1580,16 +1581,6 @@ private fun DeviceHealthPage(
     }
 }
 
-private fun formatDuration(ms: Long): String {
-    val totalSecs = ms / 1000
-    val minutes = (totalSecs % 3600) / 60
-    val seconds = totalSecs % 60
-    return String.format("%02d:%02d", minutes, seconds)
-}
+private fun formatDuration(ms: Long): String = FormatUtils.fastFormatDuration(ms)
 
-private fun formatPace(paceMinPerKm: Double): String {
-    if (paceMinPerKm <= 0.1 || paceMinPerKm > 30) return "--'--\""
-    val minutes = paceMinPerKm.toInt()
-    val seconds = ((paceMinPerKm - minutes) * 60).toInt()
-    return String.format("%d'%02d\"", minutes, seconds)
-}
+private fun formatPace(paceMinPerKm: Double): String = FormatUtils.fastFormatPace(paceMinPerKm)

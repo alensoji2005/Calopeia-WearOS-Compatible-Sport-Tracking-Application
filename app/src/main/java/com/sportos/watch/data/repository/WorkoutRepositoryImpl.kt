@@ -12,6 +12,7 @@ import com.sportos.watch.sports.cricket.CricketState
 import com.sportos.watch.sports.football.FootballState
 import com.sportos.watch.sports.running.RunningState
 import com.sportos.watch.sports.tennis.TennisState
+import com.sportos.watch.core.export.RouteCompressor
 import kotlinx.coroutines.flow.Flow
 import java.util.Locale
 import kotlin.math.max
@@ -143,6 +144,12 @@ class WorkoutRepositoryImpl(
             }
         }
 
+        val compressedRoute = if (state is RunningState && state.routePoints.isNotEmpty()) {
+            RouteCompressor.encode(state.routePoints)
+        } else {
+            ""
+        }
+
         val session = WorkoutSessionEntity(
             sportType = sportType,
             subMode = subMode,
@@ -153,10 +160,18 @@ class WorkoutRepositoryImpl(
             avgHeartRate = avgHr,
             distanceMeters = distance,
             avgPaceMinPerKm = avgPace,
-            sportSpecificSummary = summary
+            sportSpecificSummary = summary,
+            serializedRoutePoints = compressedRoute
         )
 
-        return dao.insertSession(session)
+        val insertedId = dao.insertSession(session)
+
+        // Automatic storage retention: prune sessions older than top 100 to protect watch storage
+        try {
+            dao.pruneOldSessions(maxSessions = 100)
+        } catch (_: Exception) {}
+
+        return insertedId
     }
 
     private suspend fun checkAndUpdatePR(
