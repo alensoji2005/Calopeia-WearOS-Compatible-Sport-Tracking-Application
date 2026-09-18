@@ -64,6 +64,7 @@ class BasketballEngine(
 
     // Shot detection debounce
     private var lastShotDetectedTimeMs: Long = 0
+    private var lastUiUpdateTimeMs: Long = 0
 
     override fun start() {
         startTimeMs = System.currentTimeMillis()
@@ -72,6 +73,7 @@ class BasketballEngine(
         pausedDurationMs = 0
         imuRingBuffer.clear()
         accumulatedPlayerLoad = 0.0
+        lastUiUpdateTimeMs = 0
     }
 
     override fun pause() {
@@ -135,15 +137,17 @@ class BasketballEngine(
         }
 
         val elapsed = max(0L, now - startTimeMs - pausedDurationMs)
-        // Calorie estimate: PlayerLoad * 1.8 + time based burn
-        val calories = accumulatedPlayerLoad * 1.6 + (elapsed / 1000.0 / 60.0) * 8.5
-
-        _state.value = _state.value.copy(
-            elapsedTimeMs = elapsed,
-            playerLoad = accumulatedPlayerLoad,
-            caloriesKcal = calories,
-            isPaused = isPaused
-        )
+        // Throttle continuous background state updates to 1Hz to eliminate 50Hz Compose recomposition churn
+        if (now - lastUiUpdateTimeMs >= 1000L) {
+            lastUiUpdateTimeMs = now
+            val calories = accumulatedPlayerLoad * 1.6 + (elapsed / 1000.0 / 60.0) * 8.5
+            _state.value = _state.value.copy(
+                elapsedTimeMs = elapsed,
+                playerLoad = ((accumulatedPlayerLoad * 10).roundToInt()) / 10.0,
+                caloriesKcal = calories,
+                isPaused = isPaused
+            )
+        }
     }
 
     override fun processHealthData(update: ExerciseUpdate) {

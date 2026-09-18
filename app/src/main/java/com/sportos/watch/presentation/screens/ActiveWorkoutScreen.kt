@@ -170,7 +170,8 @@ fun ActiveWorkoutScreen(
                         clockTime = currentTime
                     )
                     1 -> StravaMapPage(
-                        state = runState
+                        state = runState,
+                        isVisible = (pagerState.currentPage == 1)
                     )
                     2 -> StravaSegmentPage(
                         state = runState
@@ -1285,7 +1286,8 @@ private fun StravaRunningHudPage(
 
 @Composable
 private fun StravaMapPage(
-    state: RunningState?
+    state: RunningState?,
+    isVisible: Boolean = true
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -1298,7 +1300,8 @@ private fun StravaMapPage(
             routePoints = points,
             distanceKm = distKm,
             paceString = paceStr,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            isVisible = isVisible
         )
     }
 }

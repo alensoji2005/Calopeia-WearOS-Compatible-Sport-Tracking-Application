@@ -54,12 +54,14 @@ class TennisEngine : SportEngine {
     private var rallyStartTimeMs: Long = 0
     private var maxRecordedSpeed = 0.0
     private var longestRally = 0L
+    private var lastStrokeTimeMs: Long = 0L
 
     override fun start() {
         startTimeMs = System.currentTimeMillis()
         isActive = true
         isPaused = false
         pausedDurationMs = 0
+        lastStrokeTimeMs = 0L
     }
 
     override fun pause() {
@@ -83,8 +85,10 @@ class TennisEngine : SportEngine {
 
         // Classify strokes based on angular velocity & roll
         val gyroMag = sqrt(data.gyroX*data.gyroX + data.gyroY*data.gyroY + data.gyroZ*data.gyroZ)
-        // If high angular velocity racket swing (> 10 rad/s)
-        if (gyroMag > 10.0f) {
+        val now = System.currentTimeMillis()
+        // If high angular velocity racket swing (> 10 rad/s) and debounced to prevent multi-hit frames
+        if (gyroMag > 10.0f && (now - lastStrokeTimeMs > 600L)) {
+            lastStrokeTimeMs = now
             val speedKmh = gyroMag * 7.5 // approximate racket head speed
             maxRecordedSpeed = max(maxRecordedSpeed, speedKmh.toDouble())
 

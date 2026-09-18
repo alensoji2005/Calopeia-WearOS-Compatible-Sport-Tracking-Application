@@ -45,17 +45,19 @@ class HealthServicesManager(context: Context) {
         }
     }
 
-    suspend fun prepareExercise(exerciseType: ExerciseType) {
+    suspend fun prepareExercise(exerciseType: ExerciseType, enableGps: Boolean = true) {
+        val warmUpDataTypes = if (enableGps) {
+            setOf(DataType.HEART_RATE_BPM, DataType.LOCATION)
+        } else {
+            setOf(DataType.HEART_RATE_BPM)
+        }
         val warmUpConfig = WarmUpConfig(
             exerciseType = exerciseType,
-            dataTypes = setOf(
-                DataType.HEART_RATE_BPM,
-                DataType.LOCATION
-            )
+            dataTypes = warmUpDataTypes
         )
         try {
             exerciseClient.prepareExerciseAsync(warmUpConfig).await()
-            Log.d(TAG, "Prepared exercise: $exerciseType")
+            Log.d(TAG, "Prepared exercise: $exerciseType (GPS: $enableGps)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to prepare exercise", e)
         }

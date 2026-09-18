@@ -70,17 +70,33 @@ class WorkoutService : LifecycleService() {
 
         fun pause() {
             activeEngine?.pause()
+            imuSensorManager.stopListening()
             lifecycleScope.launch { healthServicesManager.pauseExercise() }
         }
 
         fun resume() {
             activeEngine?.resume()
+            imuSensorManager.startListening(
+                includeAccelerometer = true,
+                includeGyroscope = requiresGyroForSport(currentSportType),
+                maxReportLatencyUs = 150_000
+            )
             lifecycleScope.launch { healthServicesManager.resumeExercise() }
         }
 
         fun lap() {
             activeEngine?.triggerLap()
         }
+    }
+
+    private fun requiresGpsForSport(sport: String): Boolean = when (sport) {
+        "Running", "Football" -> true
+        else -> false
+    }
+
+    private fun requiresGyroForSport(sport: String): Boolean = when (sport) {
+        "Basketball", "Cricket", "Tennis" -> true
+        else -> false
     }
 
     override fun onCreate() {
@@ -155,7 +171,10 @@ class WorkoutService : LifecycleService() {
             }.launchIn(this)
         }
         
-        // Start live health services
+        // Start live health services with selective GPS gating
+        val needsGps = requiresGpsForSport(sportType)
+        val needsGyro = requiresGyroForSport(sportType)
+
         lifecycleScope.launch {
             val exType = when (sportType) {
                 "Running" -> ExerciseType.RUNNING
@@ -165,14 +184,29 @@ class WorkoutService : LifecycleService() {
                 "Tennis" -> ExerciseType.TENNIS
                 else -> ExerciseType.WORKOUT
             }
-            healthServicesManager.prepareExercise(exType)
-            healthServicesManager.startExercise(
-                exType, 
-                setOf(DataType.HEART_RATE_BPM, DataType.DISTANCE_TOTAL, DataType.PACE, DataType.STEPS_PER_MINUTE)
-            )
+            healthServicesManager.prepareExercise(exType, enableGps = needsGps)
+
+            val dataTypes = mutableSetOf<DataType<*, *>>(DataType.HEART_RATE_BPM)
+            if (needsGps) {
+                dataTypes.add(DataType.LOCATION)
+                dataTypes.add(DataType.DISTANCE_TOTAL)
+                dataTypes.add(DataType.PACE)
+            } else {
+                dataTypes.add(DataType.DISTANCE_TOTAL)
+                dataTypes.add(DataType.STEPS_PER_MINUTE)
+            }
+            if (sportType == "Running") {
+                dataTypes.add(DataType.STEPS_PER_MINUTE)
+            }
+
+            healthServicesManager.startExercise(exType, dataTypes)
         }
         
-        imuSensorManager.startListening()
+        imuSensorManager.startListening(
+            includeAccelerometer = true,
+            includeGyroscope = needsGyro,
+            maxReportLatencyUs = 150_000
+        )
 
         // If in Demo Mode (or on emulator), run TelemetrySimulator to keep all screens dynamically animated
         if (isDemo) {
@@ -218,6 +252,14 @@ class WorkoutService : LifecycleService() {
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager?.cancel(NOTIFICATION_ID)
         stopSelf()
+    }
+
+    override fun onDestroy() {
+        if (isWorkoutActive) {
+            stopWorkoutForeground()
+        }
+        imuSensorManager.stopListening()
+        super.onDestroy()
     }
 
     private fun buildNotificationBuilder(status: Status? = null): NotificationCompat.Builder {

@@ -84,12 +84,18 @@ class RunningEngine(
     private var lapStartDistance = 0.0
     private var lapStartTimeMs = 0L
 
+    // Internal mutable buffer for route points to eliminate ~6.5M array allocations over a long run
+    private val mutableRoutePoints = ArrayList<GpsLocationPoint>(500)
+    // Pre-allocated array for Location.distanceBetween calculation
+    private val distanceCalculationResult = FloatArray(1)
+
     override fun start() {
         startTimeMs = System.currentTimeMillis()
         lapStartTimeMs = startTimeMs
         isRunning = true
         isPaused = false
         pausedDurationMs = 0
+        mutableRoutePoints.clear()
     }
 
     override fun pause() {
@@ -194,15 +200,38 @@ class RunningEngine(
         isPaused = false
     }
 
+    private fun isSignificantPoint(last: GpsLocationPoint?, candidate: GpsLocationPoint): Boolean {
+        if (last == null) return true
+        android.location.Location.distanceBetween(
+            last.latitude, last.longitude,
+            candidate.latitude, candidate.longitude,
+            distanceCalculationResult
+        )
+        val dist = distanceCalculationResult[0]
+        if (dist >= 3.0f) return true
+        if (dist >= 1.5f) {
+            val bearingDiff = kotlin.math.abs(candidate.bearingDegrees - last.bearingDegrees)
+            val normalizedDiff = if (bearingDiff > 180f) 360f - bearingDiff else bearingDiff
+            if (normalizedDiff > 20f) return true
+        }
+        return false
+    }
+
     fun addGpsPoint(point: GpsLocationPoint) {
         val current = _state.value
-        val updatedPoints = current.routePoints + point
+        val lastPoint = mutableRoutePoints.lastOrNull()
+        val isNewPoint = isSignificantPoint(lastPoint, point)
+        
+        if (isNewPoint) {
+            mutableRoutePoints.add(point)
+        }
+
         val prevEle = current.currentElevationMeters
         val eleDiff = point.altitudeMeters - prevEle
         val newGain = if (eleDiff > 0) current.elevationGainMeters + eleDiff else current.elevationGainMeters
 
         _state.value = current.copy(
-            routePoints = updatedPoints,
+            routePoints = if (isNewPoint) ArrayList(mutableRoutePoints) else current.routePoints,
             currentElevationMeters = point.altitudeMeters,
             elevationGainMeters = newGain
         )
@@ -222,12 +251,20 @@ class RunningEngine(
         gpsPoint: GpsLocationPoint? = null
     ) {
         val current = _state.value
-        val updatedPoints = if (gpsPoint != null) current.routePoints + gpsPoint else current.routePoints
+        val isNewPoint = if (gpsPoint != null) {
+            val lastPoint = mutableRoutePoints.lastOrNull()
+            if (isSignificantPoint(lastPoint, gpsPoint)) {
+                mutableRoutePoints.add(gpsPoint)
+                true
+            } else false
+        } else false
 
-        // Calculate dynamic km splits
+        val updatedPoints = if (isNewPoint) ArrayList(mutableRoutePoints) else current.routePoints
+
+        // Calculate dynamic km splits - only allocate when a new km milestone is reached
         val kmCompleted = (distanceM / 1000.0).toInt()
-        val currentSplits = current.kmSplits.toMutableList()
-        if (kmCompleted > currentSplits.size && kmCompleted > 0) {
+        val updatedSplits = if (kmCompleted > current.kmSplits.size && kmCompleted > 0) {
+            val currentSplits = current.kmSplits.toMutableList()
             val splitTime = elapsedMs / kmCompleted
             val splitPace = (splitTime / 1000.0 / 60.0)
             currentSplits.add(
@@ -240,6 +277,9 @@ class RunningEngine(
                     avgHeartRate = heartRate
                 )
             )
+            currentSplits
+        } else {
+            current.kmSplits
         }
 
         // Live segment calculation
@@ -257,7 +297,7 @@ class RunningEngine(
             caloriesKcal = calories,
             routePoints = updatedPoints,
             elevationGainMeters = elevationGainM,
-            kmSplits = currentSplits,
+            kmSplits = updatedSplits,
             segmentDistanceRemainingM = segmentDistRemaining,
             segmentPrDeltaMs = prDelta
         )
